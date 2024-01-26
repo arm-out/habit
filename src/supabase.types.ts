@@ -13,46 +13,47 @@ export interface Database {
         Row: {
           caption: string | null
           created_at: string
+          id: number
           image: string
           name: string
         }
         Insert: {
           caption?: string | null
           created_at?: string
+          id?: number
           image: string
           name: string
         }
         Update: {
           caption?: string | null
           created_at?: string
+          id?: number
           image?: string
           name?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "posts_name_fkey"
-            columns: ["name"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["name"]
-          }
-        ]
+        Relationships: []
       }
       users: {
         Row: {
+          last_id: number | null
           last_post: string
           name: string
           streak: number | null
+          tz: string | null
         }
         Insert: {
+          last_id?: number | null
           last_post: string
           name: string
           streak?: number | null
+          tz?: string | null
         }
         Update: {
+          last_id?: number | null
           last_post?: string
           name?: string
           streak?: number | null
+          tz?: string | null
         }
         Relationships: []
       }

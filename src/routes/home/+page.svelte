@@ -1,5 +1,5 @@
 <script lang="ts">
-	import moment, { type Moment } from 'moment-timezone';
+	import moment from 'moment-timezone';
 	import { onMount } from 'svelte';
 	import Modal from './Modal.svelte';
 	import { nanoid } from 'nanoid';
@@ -8,14 +8,19 @@
 	let { supabase } = data;
 	$: ({ supabase } = data);
 
+	let posts = data.posts;
+
 	type Post = null | {
-		image: string;
-		caption: string;
-		time: string;
+		last_caption: string;
+		last_image: string;
+		last_post: string;
+		name: string;
+		streak: number;
+		tz: string;
 	};
 
-	let armTime = moment.utc().tz('America/Los_Angeles').format('ddd, DD MMM h:mm A');
-	let rakTime = moment.utc().tz('Europe/Dublin').format('ddd, DD MMM h:mm A');
+	let armTime = moment.utc().tz('America/Los_Angeles');
+	let rakTime = moment.utc().tz('Europe/Dublin');
 
 	let armStreak = 0;
 	let rakStreak = 0;
@@ -32,6 +37,14 @@
 
 	let armPost: Post = null;
 	let rakPost: Post = null;
+
+	armPost = posts.find((post: Post) => post!.name === 'arm' && post!.last_image);
+	rakPost = posts.find((post: Post) => post!.name === 'rak' && post!.last_image);
+
+	$: {
+		armStreak = armPost ? armPost.streak : 0;
+		rakStreak = rakPost ? rakPost.streak : 0;
+	}
 
 	function onChange(user: string) {
 		currUser = user;
@@ -51,20 +64,44 @@
 	async function handlePost(e: CustomEvent) {
 		switch (e.detail.user) {
 			case 'arm':
+				if (armStreak === 0) {
+					armStreak = 1;
+				} else {
+					const prevDate = moment(armPost!.last_post).tz(armPost!.tz).date();
+					const currDate = moment.utc().tz(armPost!.tz).date();
+
+					if (prevDate != currDate) {
+						armStreak++;
+					}
+				}
 				armPost = {
-					image: reader.result as string,
-					caption: e.detail.caption,
-					time: moment.utc().tz('America/Los_Angeles').format('ddd, DD MMM h:mm A')
+					last_image: reader.result as string,
+					last_caption: e.detail.caption,
+					last_post: moment.utc().format(),
+					streak: armStreak,
+					name: 'arm',
+					tz: 'America/Los_Angeles'
 				};
-				armStreak++;
 				break;
 			case 'rak':
+				if (rakStreak === 0) {
+					rakStreak = 1;
+				} else {
+					const prevDate = moment(rakPost!.last_post).tz(rakPost!.tz).date();
+					const currDate = moment.utc().tz(rakPost!.tz).date();
+
+					if (prevDate != currDate) {
+						rakStreak++;
+					}
+				}
 				rakPost = {
-					image: reader.result as string,
-					caption: e.detail.caption,
-					time: moment.utc().tz('Europe/Dublin').format('ddd, DD MMM h:mm A')
+					last_image: reader.result as string,
+					last_caption: e.detail.caption,
+					last_post: moment.utc().format(),
+					streak: rakStreak,
+					name: 'rak',
+					tz: 'Europe/Dublin'
 				};
-				rakStreak++;
 				break;
 		}
 
@@ -104,7 +141,10 @@
 		const userData = {
 			name: e.detail.user,
 			streak: e.detail.user === 'arm' ? armStreak : rakStreak,
-			last_post: now
+			tz: e.detail.user === 'arm' ? 'America/Los_Angeles' : 'Europe/Dublin',
+			last_post: now,
+			last_image: path,
+			last_caption: e.detail.caption
 		};
 
 		let userResponse = await supabase.from('users').upsert(userData);
@@ -123,8 +163,8 @@
 		reader = new FileReader();
 
 		const interval = setInterval(() => {
-			armTime = moment.utc().tz('America/Los_Angeles').format('ddd, DD MMM h:mm A');
-			rakTime = moment.utc().tz('Europe/Dublin').format('ddd, DD MMM h:mm A');
+			armTime = moment.utc().tz('America/Los_Angeles');
+			rakTime = moment.utc().tz('Europe/Dublin');
 		}, 1000);
 
 		return () => {
@@ -140,62 +180,69 @@
 <main class="h-[100dvh] flex flex-col max-w-[35rem] p-2 gap-2">
 	<section
 		style={armPost
-			? `background-image: url(${armPost.image})`
+			? `background-image: url(${armPost.last_image})`
 			: 'background-color: rgb(248 113 113)'}
-		class="h-full flex flex-col justify-between rounded-xl p-4 bg-cover {armPost
+		class="h-full flex flex-col justify-between rounded-xl p-4 bg-cover bg-center {armPost
 			? 'text-white'
 			: ''}"
 	>
 		<div class="flex flex-col">
 			<h2 class="text-4xl font-semibold">arm</h2>
-			<h3>{armPost ? armPost.time : armTime}</h3>
+			{#if armPost && armPost.last_caption}
+				<h3 class="italic">{armPost.last_caption}</h3>
+			{/if}
+			<p>
+				{armPost
+					? moment(armPost.last_post).tz(armPost.tz).format('ddd, DD MMM h:mm A')
+					: armTime.format('ddd, DD MMM h:mm A')}
+			</p>
 		</div>
 		<div class="flex flex-row justify-between items-center">
 			<p class="font-semibold text-3xl min-w-[5rem]">{armStreak}🔥</p>
-			{#if armPost}
-				<p class="italic">{armPost.caption}</p>
-			{:else}
-				<label class="cursor-pointer bg-white py-1 px-4 rounded-full">
-					<input
-						bind:this={armInput}
-						on:change={() => onChange('arm')}
-						accept="image/*"
-						type="file"
-						class="hidden"
-					/>
-					Update
-				</label>
-			{/if}
+			<label class="cursor-pointer bg-white py-1 px-4 rounded-full text-slate-600">
+				<input
+					bind:this={armInput}
+					on:change={() => onChange('arm')}
+					accept="image/*"
+					type="file"
+					class="hidden"
+				/>
+				Update
+			</label>
 		</div>
 	</section>
+
 	<section
 		style={rakPost
-			? `background-image: url(${rakPost.image})`
+			? `background-image: url(${rakPost.last_image})`
 			: 'background-color: rgb(129 140 248)'}
-		class="h-full flex flex-col justify-between rounded-xl p-4 bg-cover bg-center {rakPost
+		class="h-full flex flex-col justify-between rounded-xl p-4 bg-center bg-cover {rakPost
 			? 'text-white'
 			: ''}"
 	>
 		<div class="flex flex-col">
 			<h2 class="text-4xl font-semibold">rak</h2>
-			<h3>{rakPost ? rakPost.time : rakTime}</h3>
+			{#if rakPost && rakPost.last_caption}
+				<h3 class="italic">{rakPost.last_caption}</h3>
+			{/if}
+			<p>
+				{rakPost
+					? moment(rakPost.last_post).tz(rakPost.tz).format('ddd, DD MMM h:mm A')
+					: rakTime.format('ddd, DD MMM h:mm A')}
+			</p>
 		</div>
 		<div class="flex flex-row justify-between items-center">
 			<p class="font-semibold text-3xl min-w-[5rem]">{rakStreak}🔥</p>
-			{#if rakPost}
-				<p class="italic">{rakPost.caption}</p>
-			{:else}
-				<label class="cursor-pointer bg-white py-1 px-4 rounded-full">
-					<input
-						bind:this={rakInput}
-						on:change={() => onChange('rak')}
-						accept="image/*"
-						type="file"
-						class="hidden"
-					/>
-					Update
-				</label>
-			{/if}
+			<label class="cursor-pointer bg-white py-1 px-4 rounded-full text-slate-600">
+				<input
+					bind:this={rakInput}
+					on:change={() => onChange('arm')}
+					accept="image/*"
+					type="file"
+					class="hidden"
+				/>
+				Update
+			</label>
 		</div>
 	</section>
 </main>
