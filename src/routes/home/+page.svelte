@@ -2,6 +2,7 @@
 	import moment, { type Moment } from 'moment-timezone';
 	import { onMount } from 'svelte';
 	import Modal from './Modal.svelte';
+	import { nanoid } from 'nanoid';
 
 	export let data;
 	let { supabase } = data;
@@ -19,24 +20,25 @@
 	let armStreak = 0;
 	let rakStreak = 0;
 
-	$: console.log(showModal);
-
-	let reader: FileReader;
 	let armInput: HTMLInputElement;
 	let rakInput: HTMLInputElement;
 	let preview: HTMLImageElement;
+	let reader: FileReader;
+	let file: File | null;
 	let showModal = false;
 	let currUser = '';
 	let caption = '';
+	let filetype = '';
 
 	let armPost: Post = null;
 	let rakPost: Post = null;
 
 	function onChange(user: string) {
 		currUser = user;
-		let file = user === 'arm' ? armInput.files![0] : rakInput.files![0];
+		file = user === 'arm' ? armInput.files![0] : rakInput.files![0];
 
 		if (file) {
+			filetype = file.type.split('/')[1];
 			reader.addEventListener('load', function () {
 				preview.setAttribute('src', reader.result as string);
 			});
@@ -46,7 +48,7 @@
 		}
 	}
 
-	function handlePost(e: CustomEvent) {
+	async function handlePost(e: CustomEvent) {
 		switch (e.detail.user) {
 			case 'arm':
 				armPost = {
@@ -68,11 +70,57 @@
 
 		showModal = false;
 		caption = '';
+		const now = moment.utc().format();
+
+		// Upload File
+		const filename = nanoid(10) + '.' + filetype;
+		const path = e.detail.user + '/' + filename;
+		const storageResponse = await supabase.storage.from('images').upload(path, file!);
+
+		if (storageResponse.error) {
+			alert('error uploading image');
+			console.log(storageResponse.error);
+		}
+
+		if (storageResponse.data) {
+			console.log('success uploading image');
+		}
+
+		// Upload Post Data
+		const postData = {
+			name: e.detail.user,
+			created_at: now,
+			image: path,
+			caption: e.detail.caption
+		};
+
+		const postResponse = await supabase.from('posts').insert(postData);
+
+		if (postResponse.error) {
+			alert('error updating post');
+			console.log(postResponse.error);
+		}
+
+		const userData = {
+			name: e.detail.user,
+			streak: e.detail.user === 'arm' ? armStreak : rakStreak,
+			last_post: now
+		};
+
+		let userResponse = await supabase.from('users').upsert(userData);
+
+		if (userResponse.error) {
+			alert('error updating user');
+			console.log(userResponse.error);
+		}
+
+		file = null;
+		filetype = '';
+		currUser = '';
 	}
 
 	onMount(() => {
 		reader = new FileReader();
-		// handleSignOut();
 
 		const interval = setInterval(() => {
 			armTime = moment.utc().tz('America/Los_Angeles').format('ddd, DD MMM h:mm A');
@@ -84,9 +132,9 @@
 		};
 	});
 
-	const handleSignOut = async () => {
-		await supabase.auth.signOut();
-	};
+	// const handleSignOut = async () => {
+	// 	await supabase.auth.signOut();
+	// };
 </script>
 
 <main class="h-[100dvh] flex flex-col max-w-[35rem] p-2 gap-2">

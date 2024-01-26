@@ -11,16 +11,19 @@ export interface Database {
     Tables: {
       posts: {
         Row: {
+          caption: string | null
           created_at: string
           image: string
           name: string
         }
         Insert: {
+          caption?: string | null
           created_at?: string
           image: string
           name: string
         }
         Update: {
+          caption?: string | null
           created_at?: string
           image?: string
           name?: string
