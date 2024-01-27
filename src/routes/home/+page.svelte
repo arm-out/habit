@@ -180,9 +180,7 @@
 
 <main class="h-[100dvh] flex flex-col max-w-[35rem] p-2 gap-2">
 	<section
-		style={armPost
-			? `background-image: url(${armPost.last_image})`
-			: 'background-color: rgb(248 113 113)'}
+		style={armPost ? `background-image: url(${armPost.last_image})` : 'background-color: #888EB2'}
 		class="h-full flex flex-col justify-between rounded-xl p-4 bg-cover bg-center {armPost
 			? 'text-white'
 			: ''}"
@@ -214,9 +212,7 @@
 	</section>
 
 	<section
-		style={rakPost
-			? `background-image: url(${rakPost.last_image})`
-			: 'background-color: rgb(129 140 248)'}
+		style={rakPost ? `background-image: url(${rakPost.last_image})` : 'background-color: #A3B288'}
 		class="h-full flex flex-col justify-between rounded-xl p-4 bg-center bg-cover {rakPost
 			? 'text-white'
 			: ''}"

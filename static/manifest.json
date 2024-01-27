@@ -1,0 +1,26 @@
+{
+	"name": "Habitsnap",
+	"short_name": "Habitsnap",
+	"start_url": "/",
+	"display": "standalone",
+	"theme_color": "#ffffff",
+	"background_color": "#ffffff",
+	"description": "arm and rak's grind tracker",
+	"icons": [
+		{
+			"src": "icon64.png",
+			"sizes": "64x64",
+			"type": "image/png"
+		},
+		{
+			"src": "icon192.png",
+			"sizes": "192x192",
+			"type": "image/png"
+		},
+		{
+			"src": "icon512.png",
+			"sizes": "512x512",
+			"type": "image/png"
+		}
+	]
+}
