@@ -157,6 +157,7 @@
 		file = null;
 		filetype = '';
 		currUser = '';
+		preview.setAttribute('src', '');
 	}
 
 	onMount(() => {
@@ -236,7 +237,7 @@
 			<label class="cursor-pointer bg-white py-1 px-4 rounded-full text-slate-600">
 				<input
 					bind:this={rakInput}
-					on:change={() => onChange('arm')}
+					on:change={() => onChange('rak')}
 					accept="image/*"
 					type="file"
 					class="hidden"
