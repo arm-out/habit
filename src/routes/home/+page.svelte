@@ -167,6 +167,11 @@
 		preview.setAttribute('src', '');
 	}
 
+	let winNav: any;
+	let isInWebAppiOS;
+	let isInWebAppChrome;
+	let extraPadding: string;
+
 	onMount(() => {
 		reader = new FileReader();
 
@@ -174,6 +179,11 @@
 			armTime = moment.utc().tz('America/Los_Angeles');
 			rakTime = moment.utc().tz('Europe/Dublin');
 		}, 1000);
+
+		winNav = window.navigator;
+		isInWebAppiOS = winNav === true;
+		isInWebAppChrome = window.matchMedia('(display-mode: standalone)').matches;
+		extraPadding = isInWebAppiOS || isInWebAppChrome ? 'pb-8' : '';
 
 		return () => {
 			clearInterval(interval);
@@ -185,7 +195,7 @@
 	// };
 </script>
 
-<main class="h-[100dvh] flex flex-col max-w-[35rem] p-2 gap-2">
+<main class="h-[100dvh] flex flex-col max-w-[35rem] p-2 gap-2 {extraPadding}">
 	<section
 		style={armPost ? `background-image: url(${armPost.last_image})` : 'background-color: #888EB2'}
 		class="h-full flex flex-col justify-between rounded-xl p-4 bg-cover bg-center {armPost
