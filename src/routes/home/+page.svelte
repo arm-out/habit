@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import Modal from './Modal.svelte';
 	import { nanoid } from 'nanoid';
+	import { toast } from '@zerodevx/svelte-toast';
 
 	export let data;
 	let { supabase } = data;
@@ -112,16 +113,10 @@
 		// Upload File
 		const filename = nanoid(10) + '.' + filetype;
 		const path = e.detail.user + '/' + filename;
-		const storageResponse = await supabase.storage.from('images').upload(path, file!);
 
-		if (storageResponse.error) {
-			alert('error uploading image');
-			console.log(storageResponse.error);
-		}
-
-		if (storageResponse.data) {
-			console.log('success uploading image');
-		}
+		let uploadImage = async (path: string, file: File) => {
+			return supabase.storage.from('images').upload(path, file!);
+		};
 
 		// Upload Post Data
 		const postData = {
@@ -131,12 +126,9 @@
 			caption: e.detail.caption
 		};
 
-		const postResponse = await supabase.from('posts').insert(postData);
-
-		if (postResponse.error) {
-			alert('error updating post');
-			console.log(postResponse.error);
-		}
+		let insertPost = async (postData: any) => {
+			return supabase.from('posts').insert(postData);
+		};
 
 		const userData = {
 			name: e.detail.user,
@@ -147,12 +139,27 @@
 			last_caption: e.detail.caption
 		};
 
-		let userResponse = await supabase.from('users').upsert(userData);
+		let updateUser = async (userData: any) => {
+			return supabase.from('users').upsert(userData);
+		};
 
-		if (userResponse.error) {
-			alert('error updating user');
-			console.log(userResponse.error);
-		}
+		const id = toast.push('Uploading...', {
+			theme: {
+				'--toastBarHeight': 0
+			},
+			initial: 0
+		});
+
+		await Promise.all([uploadImage(path, file!), insertPost(postData), updateUser(userData)])
+			.catch((err) => {
+				console.error(err);
+				toast.pop(id);
+				alert(err);
+			})
+			.then(() => {
+				console.log('finished uploading');
+				toast.pop(id);
+			});
 
 		file = null;
 		filetype = '';

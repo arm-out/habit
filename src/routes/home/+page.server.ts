@@ -26,6 +26,5 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 		}
 	});
 
-	console.log(data);
 	return { posts: data };
 };

@@ -2,6 +2,7 @@
 	import '../app.css';
 	import { invalidate } from '$app/navigation';
 	import { onMount } from 'svelte';
+	import { SvelteToast } from '@zerodevx/svelte-toast';
 
 	export let data;
 
@@ -22,3 +23,4 @@
 </script>
 
 <slot />
+<SvelteToast />
