@@ -2,17 +2,22 @@
 	import { createEventDispatcher } from 'svelte';
 
 	export let showModal: boolean;
-	export let user: string;
 	export let caption: string;
 
 	let dialog: HTMLDialogElement;
+	let selectInput: HTMLSelectElement;
 
 	$: if (dialog && showModal) dialog.showModal();
 
 	const dispatch = createEventDispatcher();
 
 	function submit() {
-		dispatch('post', { user, caption });
+		if (selectInput.value === 'none') {
+			alert('Please select your name');
+			return;
+		}
+
+		dispatch('post', { user: selectInput.value, caption });
 		dialog.close();
 	}
 </script>
@@ -26,6 +31,14 @@
 	<!-- svelte-ignore a11y-no-static-element-interactions -->
 	<div on:click|stopPropagation>
 		<slot />
+		<label for="cars">Who are you:</label>
+		<select id="cars" name="cars" bind:this={selectInput}>
+			<option value="none"></option>
+			<option value="arm">Armin</option>
+			<option value="bron">Bronte</option>
+			<option value="eden">Eden</option>
+			<option value="rak">Rachel</option>
+		</select>
 		<div class="pt-4 flex flex-row gap-2">
 			<button on:click={submit} class="border border-black rounded text-white bg-black p-1"
 				>Submit</button
