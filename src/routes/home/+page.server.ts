@@ -26,5 +26,21 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 		}
 	});
 
+	// sort by most recent post
+	data.sort((a, b) => {
+		// Convert time strings back to moment objects
+		const momentA = moment.utc(a.last_post);
+		const momentB = moment.utc(b.last_post);
+
+		// Compare the two moments
+		if (momentA.isBefore(momentB)) {
+			return 1; // Return 1 if a is before b, to sort in descending order
+		} else if (momentA.isAfter(momentB)) {
+			return -1; // Return -1 if a is after b
+		} else {
+			return 0; // Return 0 if they are the same time
+		}
+	});
+
 	return { posts: data };
 };
