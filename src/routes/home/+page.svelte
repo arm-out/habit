@@ -38,6 +38,7 @@
 	async function handlePost(e: CustomEvent) {
 		let newStreak: number;
 		let newTz: string;
+		let newLongestStreak: number;
 
 		for (let i = 0; i < posts.length; i++) {
 			if (posts[i].name === e.detail.user) {
@@ -55,9 +56,11 @@
 				posts[i].last_image = reader.result as string;
 				posts[i].last_caption = e.detail.caption;
 				posts[i].last_post = moment.utc().format();
+				posts[i].longest_streak = Math.max(posts[i].streak, posts[i].longest_streak);
 
 				newStreak = posts[i].streak;
 				newTz = posts[i].tz;
+				newLongestStreak = posts[i].longest_streak;
 
 				// Move the post to the front of the array
 				const postToUpdate = posts.splice(i, 1)[0]; // Remove the post and store it
@@ -96,7 +99,8 @@
 			tz: newTz!,
 			last_post: now,
 			last_image: path,
-			last_caption: e.detail.caption
+			last_caption: e.detail.caption,
+			longest_streak: newLongestStreak!
 		};
 
 		let updateUser = async (userData: any) => {
@@ -147,8 +151,23 @@
 </script>
 
 <main class="h-[100dvh] flex flex-col max-w-[35rem] p-2 gap-2 overflow-y-scroll {extraPadding}">
-	<nav class="pb-2">
-		<h1 class="text-[#78866B] font-extrabold text-4xl">habitsnap.</h1>
+	<nav class="py-2 flex flex-row justify-between items-center">
+		<a href="/home"
+			><h1 class="text-[#78866B] font-extrabold text-4xl inline-block">habitsnap.</h1></a
+		>
+		<a href="/leaderboard">
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				fill="#475569"
+				width="1.75rem"
+				height="1.75rem"
+				class="mr-2"
+				viewBox="0 0 24 24"
+				><path
+					d="M22,7H16.333V4a1,1,0,0,0-1-1H8.667a1,1,0,0,0-1,1v7H2a1,1,0,0,0-1,1v8a1,1,0,0,0,1,1H22a1,1,0,0,0,1-1V8A1,1,0,0,0,22,7ZM7.667,19H3V13H7.667Zm6.666,0H9.667V5h4.666ZM21,19H16.333V9H21Z"
+				/></svg
+			>
+		</a>
 	</nav>
 
 	{#each posts as post (post.name)}
@@ -183,10 +202,10 @@
 	</svg>
 </label>
 
-<Modal bind:showModal on:post={handlePost} user={currUser} {caption}>
-	<div>
+<Modal bind:showModal on:post={handlePost} {caption}>
+	<div class="pb-2">
 		<h2 class="text-2xl font-bold">Upload Image</h2>
-		<img bind:this={preview} src="" alt="Preview" class="py-2" />
+		<img bind:this={preview} src="" alt="Preview" class="mb-2" />
 		<input
 			bind:value={caption}
 			type="text"

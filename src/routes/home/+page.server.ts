@@ -8,6 +8,7 @@ export type Post = {
 	name: string;
 	streak: number;
 	tz: string;
+	longest_streak: number;
 };
 
 export const load: PageServerLoad = async ({ locals: { supabase } }) => {
@@ -24,10 +25,14 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 
 		const diff = now.diff(lastTimestamp, 'days');
 
-		user.last_image =
-			'https://jyjpcrzdbqygrkxvcnpt.supabase.co/storage/v1/object/public/images/' +
-			user.last_image +
-			'?width=900';
+		if (user.last_image === null) {
+			user.last_image = '';
+		} else {
+			user.last_image =
+				'https://jyjpcrzdbqygrkxvcnpt.supabase.co/storage/v1/object/public/images/' +
+				user.last_image +
+				'?width=900';
+		}
 
 		if (diff >= 2) {
 			user.streak = 0;
