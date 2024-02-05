@@ -1,6 +1,15 @@
 import moment from 'moment-timezone';
 import type { PageServerLoad } from './$types';
 
+export type Post = {
+	last_caption: string;
+	last_image: string;
+	last_post: string;
+	name: string;
+	streak: number;
+	tz: string;
+};
+
 export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 	const { data, error } = await supabase.from('users').select('*');
 	if (error) {
@@ -10,7 +19,7 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 	const now = moment.utc();
 
 	// sanitize data
-	data.forEach((user) => {
+	data.forEach((user: Post) => {
 		const lastTimestamp = moment.utc(user.last_post);
 
 		const diff = now.diff(lastTimestamp, 'days');
@@ -27,7 +36,7 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 	});
 
 	// sort by most recent post
-	data.sort((a, b) => {
+	data.sort((a: Post, b: Post) => {
 		// Convert time strings back to moment objects
 		const momentA = moment.utc(a.last_post);
 		const momentB = moment.utc(b.last_post);

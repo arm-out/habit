@@ -4,6 +4,7 @@
 	import Modal from './Modal.svelte';
 	import { nanoid } from 'nanoid';
 	import { toast } from '@zerodevx/svelte-toast';
+	import Card from './Card.svelte';
 
 	export let data;
 	let { supabase } = data;
@@ -11,23 +12,7 @@
 
 	let posts = data.posts;
 
-	type Post = null | {
-		last_caption: string;
-		last_image: string;
-		last_post: string;
-		name: string;
-		streak: number;
-		tz: string;
-	};
-
-	let armTime = moment.utc().tz('America/Los_Angeles');
-	let rakTime = moment.utc().tz('Europe/Dublin');
-
-	let armStreak = 0;
-	let rakStreak = 0;
-
-	let armInput: HTMLInputElement;
-	let rakInput: HTMLInputElement;
+	let input: HTMLInputElement;
 	let preview: HTMLImageElement;
 	let reader: FileReader;
 	let file: File | null;
@@ -36,20 +21,8 @@
 	let caption = '';
 	let filetype = '';
 
-	let armPost: Post = null;
-	let rakPost: Post = null;
-
-	armPost = posts.find((post: Post) => post!.name === 'arm' && post!.last_image);
-	rakPost = posts.find((post: Post) => post!.name === 'rak' && post!.last_image);
-
-	$: {
-		armStreak = armPost ? armPost.streak : 0;
-		rakStreak = rakPost ? rakPost.streak : 0;
-	}
-
-	function onChange(user: string) {
-		currUser = user;
-		file = user === 'arm' ? armInput.files![0] : rakInput.files![0];
+	function onChange() {
+		file = input.files![0];
 
 		if (file) {
 			filetype = file.type.split('/')[1];
@@ -63,47 +36,34 @@
 	}
 
 	async function handlePost(e: CustomEvent) {
-		switch (e.detail.user) {
-			case 'arm':
-				if (armStreak === 0) {
-					armStreak = 1;
+		let newStreak: number;
+		let newTz: string;
+
+		for (let i = 0; i < posts.length; i++) {
+			if (posts[i].name === e.detail.user) {
+				if (posts[i].streak === 0) {
+					posts[i].streak = 1;
 				} else {
-					const prevDate = moment(armPost!.last_post).tz(armPost!.tz).date();
-					const currDate = moment.utc().tz(armPost!.tz).date();
+					const prevDate = moment(posts[i].last_post).tz(posts[i].tz).date();
+					const currDate = moment.utc().tz(posts[i].tz).date();
 
 					if (prevDate != currDate) {
-						armStreak++;
+						posts[i].streak++;
 					}
 				}
-				armPost = {
-					last_image: reader.result as string,
-					last_caption: e.detail.caption,
-					last_post: moment.utc().format(),
-					streak: armStreak,
-					name: 'arm',
-					tz: 'America/Los_Angeles'
-				};
-				break;
-			case 'rak':
-				if (rakStreak === 0) {
-					rakStreak = 1;
-				} else {
-					const prevDate = moment(rakPost!.last_post).tz(rakPost!.tz).date();
-					const currDate = moment.utc().tz(rakPost!.tz).date();
 
-					if (prevDate != currDate) {
-						rakStreak++;
-					}
-				}
-				rakPost = {
-					last_image: reader.result as string,
-					last_caption: e.detail.caption,
-					last_post: moment.utc().format(),
-					streak: rakStreak,
-					name: 'rak',
-					tz: 'Europe/Dublin'
-				};
+				posts[i].last_image = reader.result as string;
+				posts[i].last_caption = e.detail.caption;
+				posts[i].last_post = moment.utc().format();
+
+				newStreak = posts[i].streak;
+				newTz = posts[i].tz;
+
+				// Move the post to the front of the array
+				const postToUpdate = posts.splice(i, 1)[0]; // Remove the post and store it
+				posts.unshift(postToUpdate); // Add the removed post to the beginning of the array
 				break;
+			}
 		}
 
 		showModal = false;
@@ -132,8 +92,8 @@
 
 		const userData = {
 			name: e.detail.user,
-			streak: e.detail.user === 'arm' ? armStreak : rakStreak,
-			tz: e.detail.user === 'arm' ? 'America/Los_Angeles' : 'Europe/Dublin',
+			streak: newStreak!,
+			tz: newTz!,
 			last_post: now,
 			last_image: path,
 			last_caption: e.detail.caption
@@ -175,19 +135,10 @@
 	onMount(() => {
 		reader = new FileReader();
 
-		const interval = setInterval(() => {
-			armTime = moment.utc().tz('America/Los_Angeles');
-			rakTime = moment.utc().tz('Europe/Dublin');
-		}, 1000);
-
 		winNav = window.navigator;
 		isInWebAppiOS = winNav === true;
 		isInWebAppChrome = window.matchMedia('(display-mode: standalone)').matches;
 		extraPadding = isInWebAppiOS || isInWebAppChrome ? 'pb-8' : '';
-
-		return () => {
-			clearInterval(interval);
-		};
 	});
 
 	// const handleSignOut = async () => {
@@ -195,71 +146,42 @@
 	// };
 </script>
 
-<main class="h-[100dvh] flex flex-col max-w-[35rem] p-2 gap-2 {extraPadding}">
-	<section
-		style={armPost ? `background-image: url(${armPost.last_image})` : 'background-color: #888EB2'}
-		class="h-full flex flex-col justify-between rounded-xl p-4 bg-cover bg-center {armPost
-			? 'text-white'
-			: ''}"
-	>
-		<div class="flex flex-col">
-			<h2 class="text-4xl font-semibold">arm</h2>
-			{#if armPost && armPost.last_caption}
-				<h3 class="italic">{armPost.last_caption}</h3>
-			{/if}
-			<p>
-				{armPost
-					? moment(armPost.last_post).tz(armPost.tz).format('ddd, DD MMM h:mm A')
-					: armTime.format('ddd, DD MMM h:mm A')}
-			</p>
-		</div>
-		<div class="flex flex-row justify-between items-center">
-			<p class="font-semibold text-3xl min-w-[5rem]">{armStreak}🔥</p>
-			<label class="cursor-pointer bg-white py-1 px-4 rounded-full text-slate-600">
-				<input
-					bind:this={armInput}
-					on:change={() => onChange('arm')}
-					accept="image/*"
-					type="file"
-					class="hidden"
-				/>
-				Update
-			</label>
-		</div>
-	</section>
+<main class="h-[100dvh] flex flex-col max-w-[35rem] p-2 gap-2 overflow-y-scroll {extraPadding}">
+	<nav class="pb-2">
+		<h1 class="text-[#78866B] font-extrabold text-4xl">habitsnap.</h1>
+	</nav>
 
-	<section
-		style={rakPost ? `background-image: url(${rakPost.last_image})` : 'background-color: #A3B288'}
-		class="h-full flex flex-col justify-between rounded-xl p-4 bg-center bg-cover {rakPost
-			? 'text-white'
-			: ''}"
-	>
-		<div class="flex flex-col">
-			<h2 class="text-4xl font-semibold">rak</h2>
-			{#if rakPost && rakPost.last_caption}
-				<h3 class="italic">{rakPost.last_caption}</h3>
-			{/if}
-			<p>
-				{rakPost
-					? moment(rakPost.last_post).tz(rakPost.tz).format('ddd, DD MMM h:mm A')
-					: rakTime.format('ddd, DD MMM h:mm A')}
-			</p>
-		</div>
-		<div class="flex flex-row justify-between items-center">
-			<p class="font-semibold text-3xl min-w-[5rem]">{rakStreak}🔥</p>
-			<label class="cursor-pointer bg-white py-1 px-4 rounded-full text-slate-600">
-				<input
-					bind:this={rakInput}
-					on:change={() => onChange('rak')}
-					accept="image/*"
-					type="file"
-					class="hidden"
-				/>
-				Update
-			</label>
-		</div>
-	</section>
+	{#each posts as post (post.name)}
+		<Card {...post} />
+	{/each}
 </main>
+
+<label class="cursor-pointer absolute bottom-4 left-[calc(50vw-2.5rem)]">
+	<input bind:this={input} type="file" accept="image/*" class="hidden" on:change={onChange} />
+
+	<svg
+		xmlns="http://www.w3.org/2000/svg"
+		xmlns:xlink="http://www.w3.org/1999/xlink"
+		fill="#fff"
+		width="5rem"
+		height="5rem"
+		viewBox="0 0 595.021 595.021"
+		xml:space="preserve"
+	>
+		<g>
+			<g>
+				<g>
+					<path
+						d="M507.529,87.493c-27.264-27.264-59.022-48.672-94.396-63.635C376.489,8.358,337.588,0.5,297.511,0.5     c-40.078,0-78.979,7.858-115.624,23.358c-35.373,14.961-67.132,36.371-94.395,63.635c-27.264,27.263-48.673,59.022-63.635,94.395     C8.358,218.532,0.5,257.434,0.5,297.511c0,40.077,7.858,78.979,23.358,115.623c14.961,35.373,36.371,67.132,63.635,94.396     c27.263,27.263,59.022,48.672,94.395,63.634c36.645,15.5,75.546,23.358,115.624,23.358c40.077,0,78.979-7.858,115.623-23.358     c35.373-14.961,67.133-36.371,94.396-63.634c27.263-27.264,48.673-59.022,63.634-94.396     c15.499-36.645,23.358-75.546,23.358-115.623c0-40.077-7.858-78.979-23.358-115.624     C556.202,146.515,534.792,114.756,507.529,87.493z M297.511,551.682c-140.375,0-254.171-113.797-254.171-254.171     c0-140.375,113.796-254.171,254.171-254.171c140.374,0,254.171,113.796,254.171,254.171     C551.682,437.885,437.885,551.682,297.511,551.682z"
+					/>
+					<path
+						d="M297.511,595.021c-40.146,0-79.112-7.872-115.818-23.397c-35.433-14.988-67.245-36.434-94.553-63.741     c-27.31-27.31-48.755-59.122-63.742-94.555C7.872,376.623,0,337.656,0,297.511c0-40.145,7.872-79.112,23.397-115.818     c14.987-35.432,36.433-67.245,63.742-94.553c27.308-27.309,59.12-48.755,94.553-63.742C218.399,7.872,257.366,0,297.511,0     c40.146,0,79.112,7.872,115.817,23.397c35.435,14.988,67.247,36.434,94.555,63.742c27.31,27.31,48.755,59.123,63.741,94.553     c15.525,36.706,23.397,75.673,23.397,115.818c0,40.144-7.872,79.11-23.397,115.817c-14.985,35.432-36.432,67.244-63.741,94.555     c-27.31,27.31-59.122,48.755-94.555,63.741C376.623,587.149,337.656,595.021,297.511,595.021z M297.511,1     C257.5,1,218.665,8.845,182.082,24.318c-35.314,14.937-67.02,36.311-94.236,63.528c-27.218,27.217-48.591,58.923-63.528,94.236     C8.845,218.665,1,257.5,1,297.511s7.845,78.847,23.318,115.429c14.936,35.312,36.31,67.019,63.528,94.236     c27.217,27.216,58.922,48.59,94.236,63.526c36.582,15.474,75.417,23.319,115.429,23.319c40.011,0,78.847-7.846,115.429-23.319     c35.312-14.936,67.019-36.309,94.236-63.526c27.219-27.22,48.592-58.925,63.526-94.236     c15.474-36.584,23.319-75.42,23.319-115.429c0-40.011-7.846-78.847-23.319-115.429c-14.935-35.312-36.309-67.017-63.526-94.236     c-27.217-27.216-58.922-48.59-94.236-63.528C376.357,8.845,337.521,1,297.511,1z M297.511,552.182     c-68.025,0-131.979-26.49-180.08-74.592C69.33,429.489,42.84,365.535,42.84,297.511c0-68.025,26.49-131.979,74.591-180.08     S229.486,42.84,297.511,42.84c68.024,0,131.979,26.49,180.079,74.591c48.102,48.101,74.592,112.055,74.592,180.08     c0,68.024-26.49,131.979-74.592,180.079C429.489,525.691,365.535,552.182,297.511,552.182z M297.511,43.84     c-67.758,0-131.46,26.386-179.373,74.298S43.84,229.753,43.84,297.511s26.386,131.46,74.298,179.372     c47.913,47.912,111.615,74.299,179.373,74.299s131.46-26.387,179.372-74.299s74.299-111.614,74.299-179.372     s-26.387-131.46-74.299-179.373C428.971,70.226,365.269,43.84,297.511,43.84z"
+					/>
+				</g>
+			</g>
+		</g>
+	</svg>
+</label>
 
 <Modal bind:showModal on:post={handlePost} user={currUser} {caption}>
 	<div>
