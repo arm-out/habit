@@ -18,7 +18,6 @@
 	};
 
 	export let data;
-	console.log(data);
 
 	let winNav: any;
 	let isInWebAppiOS;

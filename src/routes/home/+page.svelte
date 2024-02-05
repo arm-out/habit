@@ -175,7 +175,7 @@
 	{/each}
 </main>
 
-<label class="cursor-pointer absolute bottom-4 left-[calc(50vw-2.5rem)]">
+<label class="cursor-pointer absolute bottom-8 left-[calc(50vw-2.5rem)]">
 	<input bind:this={input} type="file" accept="image/*" class="hidden" on:change={onChange} />
 
 	<svg
